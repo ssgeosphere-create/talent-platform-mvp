@@ -139,6 +139,10 @@ function validCategory(cat) {
  * Auth
  * ------------------------------------------------------------------ */
 
+// Resolve the bearer token once for every request so route-level
+// requireAuth / requireAdmin guards (and public endpoints) all see req.user.
+app.use(authOptional);
+
 app.post('/api/auth/signup', async (req, res) => {
   const { email, password, name } = req.body || {};
   const cleanEmail = String(email || '').trim().toLowerCase();
