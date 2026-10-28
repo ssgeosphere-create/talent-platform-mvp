@@ -1038,10 +1038,13 @@ function renderAuth() {
   const valueOf = (sel) => { const el = $(sel); return el ? el.value : ''; };
 
   function readDraft() {
-    draft.name = valueOf('#auth-name');
-    draft.email = valueOf('#auth-email');
-    draft.password = valueOf('#auth-password');
-    draft.confirm = valueOf('#auth-confirm');
+    // Only read fields that are actually on screen, so switching tabs never
+    // wipes a value the user typed on the other tab.
+    const grab = (sel, key) => { const el = $(sel); if (el) draft[key] = el.value; };
+    grab('#auth-name', 'name');
+    grab('#auth-email', 'email');
+    grab('#auth-password', 'password');
+    grab('#auth-confirm', 'confirm');
   }
 
   function renderFields() {
