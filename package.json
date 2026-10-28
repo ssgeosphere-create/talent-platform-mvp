@@ -6,7 +6,9 @@
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
-    "test": "node scripts/smoke-test.js"
+    "test": "node scripts/smoke-test.js && node scripts/auth-form-test.js",
+    "test:api": "node scripts/smoke-test.js",
+    "test:auth-form": "node scripts/auth-form-test.js"
   },
   "engines": {
     "node": ">=18"
