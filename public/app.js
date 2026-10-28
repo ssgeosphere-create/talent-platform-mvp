@@ -971,7 +971,7 @@ function passwordField({ id, label, autocomplete, placeholder, showLabel, hideLa
 }
 
 function bindPasswordToggles(root) {
-  $('[data-toggle]', root).forEach((btn) => {
+  Array.from(root.querySelectorAll('[data-toggle]')).forEach((btn) => {
     const input = $('#' + btn.dataset.toggle, root);
     if (!input) return;
     const baseLabel = btn.dataset.labelShow || btn.getAttribute('aria-label');
@@ -1093,7 +1093,7 @@ function renderAuth() {
     if (nextMode === mode) return;
     readDraft();
     mode = nextMode;
-    $('[data-mode]').forEach((b) => {
+    Array.from(document.querySelectorAll('[data-mode]')).forEach((b) => {
       const on = b.dataset.mode === mode;
       b.classList.toggle('active', on);
       b.setAttribute('aria-selected', on ? 'true' : 'false');
@@ -1104,7 +1104,7 @@ function renderAuth() {
     renderFields();
   }
 
-  $('[data-mode]').forEach((btn) => { btn.onclick = () => setMode(btn.dataset.mode); });
+  Array.from(document.querySelectorAll('[data-mode]')).forEach((btn) => { btn.onclick = () => setMode(btn.dataset.mode); });
   renderFields();
 
   function showError(message, selector) {
