@@ -1081,10 +1081,14 @@ function renderAuth() {
       ${confirmField}`;
 
     // Keep whatever the user already typed when switching tabs.
-    if (draft.name) $('#auth-name').value = draft.name;
-    $('#auth-email').value = draft.email;
-    $('#auth-password').value = draft.password;
-    if ($('#auth-confirm') && draft.confirm) $('#auth-confirm').value = draft.confirm;
+    const nameEl = $('#auth-name');
+    if (nameEl && draft.name) nameEl.value = draft.name;
+    const emailEl = $('#auth-email');
+    if (emailEl) emailEl.value = draft.email;
+    const pwEl = $('#auth-password');
+    if (pwEl) pwEl.value = draft.password;
+    const confirmEl = $('#auth-confirm');
+    if (confirmEl && draft.confirm) confirmEl.value = draft.confirm;
 
     bindPasswordToggles(fieldsEl);
   }
