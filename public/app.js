@@ -938,6 +938,73 @@ async function renderAdmin() {
   loadReports('open');
 }
 
+/* ---------------------------- auth ------------------------------- */
+
+const EYE_ICON = `
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <g class="eye-open">
+      <path d="M2.2 12S5.8 5.6 12 5.6 21.8 12 21.8 12 18.2 18.4 12 18.4 2.2 12 2.2 12Z" />
+      <circle cx="12" cy="12" r="3.1" />
+    </g>
+    <path class="eye-slash" d="M4 4l16 16" />
+  </svg>`;
+
+/**
+ * Password input with its own show/hide (eye) button.
+ * The button is type="button" so it never submits the form, and it keeps the
+ * typed value + caret intact while flipping input.type between password/text.
+ */
+function passwordField({ id, label, autocomplete, placeholder, showLabel, hideLabel, hint = '' }) {
+  return `
+    <div class="field">
+      <label for="${id}">${esc(label)}</label>
+      <div class="input-wrap">
+        <input class="input" id="${id}" name="${id}" type="password"
+               autocomplete="${esc(autocomplete)}" placeholder="${esc(placeholder)}"
+               minlength="8" required aria-describedby="${id}-toggle-hint" />
+        <button class="eye-btn" type="button" data-toggle="${id}"
+                aria-controls="${id}" aria-label="${esc(showLabel)}"
+                aria-pressed="false" title="${esc(showLabel)}">${EYE_ICON}</button>
+      </div>
+      <span class="hint" id="${id}-toggle-hint" hidden>${esc(hideLabel)}</span>
+      ${hint ? `<span class="hint">${esc(hint)}</span>` : ''}
+    </div>`;
+}
+
+function bindPasswordToggles(root) {
+  $('[data-toggle]', root).forEach((btn) => {
+    const input = $('#' + btn.dataset.toggle, root);
+    if (!input) return;
+    const baseLabel = btn.dataset.labelShow || btn.getAttribute('aria-label');
+    btn.dataset.labelShow = baseLabel;
+    btn.dataset.labelHide = btn.dataset.labelHide
+      || baseLabel.replace(/^Show /, 'Hide ');
+
+    const setState = (visible) => {
+      btn.classList.toggle('active', visible);
+      btn.setAttribute('aria-pressed', visible ? 'true' : 'false');
+      const label = visible ? btn.dataset.labelHide : btn.dataset.labelShow;
+      btn.setAttribute('aria-label', label);
+      btn.setAttribute('title', label);
+    };
+
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      // Snapshot before the type flip: some older Android/Chromium builds reset
+      // the field value when input.type changes, so we always restore it.
+      const value = input.value;
+      const start = input.selectionStart;
+      const end = input.selectionEnd;
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      if (value) input.value = value;
+      try { input.setSelectionRange(start, end); } catch { /* unsupported */ }
+      setState(show);
+    });
+  });
+}
+
 function renderAuth() {
   const params = new URLSearchParams((location.hash.split('?')[1] || ''));
   const next = params.get('next') || '/me';
@@ -949,24 +1016,13 @@ function renderAuth() {
         <h1>Every talent<br />deserves a stage.</h1>
         <p>Sing, dance, cook, code, fix, grow — share it in a short video.</p>
       </div>
-      <div class="segmented">
-        <button class="active" data-mode="login">Log in</button>
-        <button data-mode="signup">Sign up</button>
+      <div class="segmented" role="tablist" aria-label="Log in or sign up">
+        <button type="button" role="tab" class="active" data-mode="login" aria-selected="true">Log in</button>
+        <button type="button" role="tab" data-mode="signup" aria-selected="false">Sign up</button>
       </div>
-      <form id="auth-form">
-        <div class="form-error" data-error></div>
-        <div class="field" data-name-field hidden>
-          <label for="auth-name">Your name</label>
-          <input class="input" id="auth-name" autocomplete="name" placeholder="e.g. Meera K" />
-        </div>
-        <div class="field">
-          <label for="auth-email">Email</label>
-          <input class="input" id="auth-email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required />
-        </div>
-        <div class="field">
-          <label for="auth-password">Password</label>
-          <input class="input" id="auth-password" type="password" autocomplete="current-password" placeholder="At least 8 characters" required />
-        </div>
+      <form id="auth-form" novalidate>
+        <div class="form-error" data-error role="alert" aria-live="polite"></div>
+        <div data-fields></div>
         <button class="btn btn-primary btn-block" data-submit type="submit">Log in</button>
         <p class="hint center" style="margin-top:14px">Free accounts. We never post without you.</p>
       </form>
@@ -975,39 +1031,121 @@ function renderAuth() {
   let mode = 'login';
   const form = $('#auth-form');
   const errorEl = $('[data-error]');
-  const nameField = $('[data-name-field]');
+  const fieldsEl = $('[data-fields]');
   const submitBtn = $('[data-submit]');
-  const password = $('#auth-password');
+  const draft = { name: '', email: '', password: '', confirm: '' };
+  const idleLabel = () => (mode === 'login' ? 'Log in' : 'Create free account');
 
-  $$('[data-mode]').forEach((btn) => {
-    btn.onclick = () => {
-      $$('[data-mode]').forEach((b) => b.classList.remove('active'));
-      btn.classList.add('active');
-      mode = btn.dataset.mode;
-      nameField.hidden = mode !== 'signup';
-      submitBtn.textContent = mode === 'login' ? 'Log in' : 'Create free account';
-      password.autocomplete = mode === 'login' ? 'current-password' : 'new-password';
-      errorEl.classList.remove('show');
-    };
-  });
+  const valueOf = (sel) => { const el = $(sel); return el ? el.value : ''; };
+
+  function readDraft() {
+    draft.name = valueOf('#auth-name');
+    draft.email = valueOf('#auth-email');
+    draft.password = valueOf('#auth-password');
+    draft.confirm = valueOf('#auth-confirm');
+  }
+
+  function renderFields() {
+    // Log In deliberately has no name field and no confirm-password field.
+    const nameField = mode === 'signup' ? `
+      <div class="field">
+        <label for="auth-name">Full name</label>
+        <input class="input" id="auth-name" name="name" autocomplete="name"
+               placeholder="e.g. Meera K" minlength="2" required />
+      </div>` : '';
+
+    const confirmField = mode === 'signup' ? passwordField({
+      id: 'auth-confirm',
+      label: 'Confirm password',
+      autocomplete: 'new-password',
+      placeholder: 'Re-enter your password',
+      showLabel: 'Show confirm password',
+      hideLabel: 'Hide confirm password',
+    }) : '';
+
+    fieldsEl.innerHTML = `
+      ${nameField}
+      <div class="field">
+        <label for="auth-email">Email</label>
+        <input class="input" id="auth-email" name="email" type="email" inputmode="email"
+               autocomplete="email" placeholder="you@example.com" required />
+      </div>
+      ${passwordField({
+        id: 'auth-password',
+        label: 'Password',
+        autocomplete: mode === 'login' ? 'current-password' : 'new-password',
+        placeholder: mode === 'login' ? 'Your password' : 'At least 8 characters',
+        showLabel: 'Show password',
+        hideLabel: 'Hide password',
+        hint: mode === 'signup' ? 'Use at least 8 characters.' : '',
+      })}
+      ${confirmField}`;
+
+    // Keep whatever the user already typed when switching tabs.
+    if (draft.name) $('#auth-name').value = draft.name;
+    $('#auth-email').value = draft.email;
+    $('#auth-password').value = draft.password;
+    if ($('#auth-confirm') && draft.confirm) $('#auth-confirm').value = draft.confirm;
+
+    bindPasswordToggles(fieldsEl);
+  }
+
+  function setMode(nextMode) {
+    if (nextMode === mode) return;
+    readDraft();
+    mode = nextMode;
+    $('[data-mode]').forEach((b) => {
+      const on = b.dataset.mode === mode;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    submitBtn.textContent = idleLabel();
+    errorEl.classList.remove('show');
+    errorEl.textContent = '';
+    renderFields();
+  }
+
+  $('[data-mode]').forEach((btn) => { btn.onclick = () => setMode(btn.dataset.mode); });
+  renderFields();
+
+  function showError(message, selector) {
+    errorEl.textContent = message;
+    errorEl.classList.add('show');
+    submitBtn.disabled = false;
+    submitBtn.textContent = idleLabel();
+    const el = selector ? $(selector) : null;
+    if (el) el.focus({ preventScroll: true });
+  }
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     errorEl.classList.remove('show');
+
+    const email = valueOf('#auth-email').trim();
+    const password = valueOf('#auth-password');
+    const name = mode === 'signup' ? valueOf('#auth-name').trim() : '';
+    const confirm = mode === 'signup' ? valueOf('#auth-confirm') : '';
+
+    if (mode === 'signup' && name.length < 2) return showError('Enter your full name (2+ characters).', '#auth-name');
+    if (!email) return showError('Enter your email address.', '#auth-email');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showError('Enter a valid email address.', '#auth-email');
+    if (!password) return showError('Enter your password.', '#auth-password');
+    if (mode === 'signup' && password.length < 8) return showError('Password must be at least 8 characters.', '#auth-password');
+    if (mode === 'signup' && !confirm) return showError('Re-enter your password to confirm it.', '#auth-confirm');
+    if (mode === 'signup' && confirm !== password) return showError('Passwords do not match.', '#auth-confirm');
+
     submitBtn.disabled = true;
     submitBtn.textContent = mode === 'login' ? 'Logging in…' : 'Creating account…';
     try {
-      const body = { email: $('#auth-email').value, password: password.value };
-      if (mode === 'signup') body.name = $('#auth-name').value;
+      // Confirm password is a client-side check only — it is never sent or stored.
+      const body = { email, password };
+      if (mode === 'signup') body.name = name;
       const data = await api('/auth/' + mode, { method: 'POST', body });
       setSession(data.token, data.user);
       toast(mode === 'login' ? `Welcome back, ${data.user.name}!` : 'Account created — welcome!');
       route(next);
     } catch (err) {
-      errorEl.textContent = err.message;
-      errorEl.classList.add('show');
-      submitBtn.disabled = false;
-      submitBtn.textContent = mode === 'login' ? 'Log in' : 'Create free account';
+      showError(err.message);
     }
   });
 }
