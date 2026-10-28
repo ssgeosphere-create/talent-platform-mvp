@@ -90,6 +90,26 @@ async function waitForServer(proc) {
       assert(deepLink.status === 200 && deepLink.text.includes('<div id="app">')));
     const styles = await req('/styles.css');
     check('stylesheet is served', () => assert(styles.status === 200 && styles.text.includes('--accent')));
+    const script = await req('/app.js');
+    check('app bundle is served as JavaScript', () =>
+      assert(script.status === 200
+        && /javascript/i.test(script.headers.get('content-type') || '')
+        && script.text.length > 20000));
+    check('mobile viewport meta is present', () => assert(/viewport-fit=cover/.test(index.text)));
+
+    /* ------------- client/server route consistency ------------- */
+    const clientSrc = fs.readFileSync(path.join(ROOT, 'public', 'app.js'), 'utf8');
+    const serverSrc = fs.readFileSync(path.join(ROOT, 'server', 'index.js'), 'utf8');
+    const serverRoutes = [...serverSrc.matchAll(/app\.(?:get|post|patch|delete)\('(\/api[^']*)'/g)]
+      .map((m) => m[1].replace(/:[a-zA-Z]+/g, '*'));
+    const clientCalls = [...clientSrc.matchAll(/api\(\s*['`]([^'`]*)['`]\s*(\+)?/g)]
+      .map((m) => '/api' + m[1].replace(/\$\{[^}]+\}/g, '*').split('?')[0].replace(/\/+$/, '') + (m[2] ? '*' : ''));
+    const matches = (call) => serverRoutes.some((route) => (
+      call.endsWith('*') ? route.startsWith(call.slice(0, -1)) : route === call
+    ));
+    const orphaned = [...new Set(clientCalls)].filter((call) => call && !matches(call));
+    check(`every client api() call resolves to a server route (${new Set(clientCalls).size} checked)`, () =>
+      assert(orphaned.length === 0, 'unmatched: ' + orphaned.join(', ')));
 
     /* ---------------- auth ---------------- */
     const weak = await req('/api/auth/signup', {
