@@ -199,11 +199,9 @@ async function waitForServer(proc) {
         && mediaBuf.slice(4, 8).toString() === 'ftyp'));
 
     const range = await fetch(BASE + mediaUrl, { headers: { Range: 'bytes=0-99' } });
-    check('media supports HTTP range requests (seek/stream)', async () => {
-      assert(range.status === 206, 'expected 206, got ' + range.status);
-      const chunk = Buffer.from(await range.arrayBuffer());
-      assert(chunk.length === 100, 'expected 100 bytes, got ' + chunk.length);
-    });
+    const rangeChunk = Buffer.from(await range.arrayBuffer());
+    check('media supports HTTP range requests (seek/stream)', () =>
+      assert(range.status === 206 && rangeChunk.length === 100));
 
     /* ---------------- feed, category, search ---------------- */
     const feed = await req('/api/videos');
