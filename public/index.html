@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0b12" />
+  <meta name="description" content="TalentStage — share any talent with the world." />
+  <title>TalentStage</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%236366f1'/><path d='M50 24v36a12 12 0 1 1-12-12' stroke='white' stroke-width='9' fill='none' stroke-linecap='round'/></svg>" />
+</head>
+<body>
+  <div id="app">
+    <header class="topbar" id="topbar">
+      <a class="brand" href="#/home" aria-label="TalentStage home">
+        <span class="brand-mark">♪</span>
+        <span class="brand-name">TalentStage</span>
+      </a>
+      <div class="topbar-actions" id="topbar-actions"></div>
+    </header>
+
+    <main id="view" class="view" tabindex="-1"></main>
+
+    <nav class="tabbar" id="tabbar" aria-label="Main navigation">
+      <a class="tab" data-tab="home" href="#/home">
+        <span class="tab-icon">🏠</span><span>Home</span>
+      </a>
+      <a class="tab" data-tab="discover" href="#/discover">
+        <span class="tab-icon">🔍</span><span>Discover</span>
+      </a>
+      <a class="tab tab-upload" data-tab="upload" href="#/upload" aria-label="Upload a video">
+        <span class="tab-plus">+</span><span>Post</span>
+      </a>
+      <a class="tab" data-tab="profile" href="#/me">
+        <span class="tab-icon">👤</span><span>Profile</span>
+      </a>
+    </nav>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="/app.js" defer></script>
+</body>
+</html>
