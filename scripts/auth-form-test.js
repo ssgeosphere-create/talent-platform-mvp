@@ -223,7 +223,19 @@ const errorText = () => (el('[data-error]') ? el('[data-error]').textContent : '
   ok(!!confirmInput && confirmInput.required, 'confirm password is required');
   eq(pw.type, 'password', 'password starts hidden');
   eq(confirmInput.type, 'password', 'confirm password starts hidden');
-  eq(el('#auth-email').value, 'meera@example.com', 'email typed earlier is preserved when switching tabs');
+  console.log('\nSign Up: values survive tab switching');
+  type('#auth-name', 'Meera K');
+  type('#auth-email', 'meera@example.com');
+  type('#auth-password', 'secret123');
+  click(win.document.querySelector('[data-mode="login"]'));
+  eq(el('#auth-name'), null, 'switching to Log In removes the name field');
+  eq(el('#auth-confirm'), null, 'switching to Log In removes the confirm field');
+  eq(el('#auth-email').value, 'meera@example.com', 'email is preserved when switching to Log In');
+  click(win.document.querySelector('[data-mode="signup"]'));
+  await settle();
+  eq(el('#auth-name').value, 'Meera K', 'name is preserved when returning to Sign Up');
+  eq(el('#auth-email').value, 'meera@example.com', 'email is preserved when returning to Sign Up');
+  eq(el('#auth-password').value, 'secret123', 'password is preserved when returning to Sign Up');
 
   const eyes = Array.from(win.document.querySelectorAll('#auth-form .eye-btn'));
   eq(eyes.length, 2, 'Sign Up has two separate eye toggles');
