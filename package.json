@@ -16,5 +16,8 @@
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.0"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0"
   }
 }
