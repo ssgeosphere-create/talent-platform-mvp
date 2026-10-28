@@ -579,6 +579,10 @@ app.use('/media', express.static(UPLOAD_DIR, {
   fallthrough: true,
 }));
 
+// A missing media file must 404 (not fall through to the SPA shell), otherwise
+// a deleted video would still answer 200 with HTML.
+app.use('/media', (_req, res) => res.status(404).json({ error: 'Media not found.' }));
+
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 app.use(express.static(PUBLIC_DIR, { extensions: ['html'] }));
 
