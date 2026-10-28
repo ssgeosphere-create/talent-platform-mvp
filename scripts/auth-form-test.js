@@ -206,9 +206,9 @@ const errorText = () => (el('[data-error]') ? el('[data-error]').textContent : '
 
   /* ---------------------------- Sign Up --------------------------- */
   console.log('\nSign Up form');
-  win.localStorage.removeItem('ts_token');
-  win.location.hash = '#/auth';
-  await settle();
+  // Fresh page so the session from the login test above does not redirect
+  // #/auth straight to the profile.
+  await boot();
   click(win.document.querySelector('[data-mode="signup"]'));
   await settle();
 
