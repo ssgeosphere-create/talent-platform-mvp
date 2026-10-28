@@ -961,7 +961,7 @@ function passwordField({ id, label, autocomplete, placeholder, showLabel, hideLa
       <div class="input-wrap">
         <input class="input" id="${id}" name="${id}" type="password"
                autocomplete="${esc(autocomplete)}" placeholder="${esc(placeholder)}"
-               minlength="8" required data-hide-label="${esc(hideLabel)}" />
+               minlength="8" required />
         <button class="eye-btn" type="button" data-toggle="${id}"
                 aria-controls="${id}" aria-label="${esc(showLabel)}"
                 aria-pressed="false" title="${esc(showLabel)}">${EYE_ICON}</button>
