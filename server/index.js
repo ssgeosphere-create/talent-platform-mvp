@@ -533,6 +533,22 @@ app.post('/api/admin/reports/:id/resolve', requireAdmin, (req, res) => {
   res.json({ ok: true, report });
 });
 
+app.post('/api/admin/videos/:id/hide', requireAdmin, (req, res) => {
+  const video = db.videos.find((v) => v.id === req.params.id);
+  if (!video) return res.status(404).json({ error: 'Video not found.' });
+  video.hidden = true;
+  persist();
+  res.json({ ok: true, video: serializeVideo(video, req.user) });
+});
+
+app.post('/api/admin/videos/:id/restore', requireAdmin, (req, res) => {
+  const video = db.videos.find((v) => v.id === req.params.id);
+  if (!video) return res.status(404).json({ error: 'Video not found.' });
+  video.hidden = false;
+  persist();
+  res.json({ ok: true, video: serializeVideo(video, req.user) });
+});
+
 app.get('/api/admin/stats', requireAdmin, (_req, res) => {
   res.json({
     users: db.users.length,

@@ -301,9 +301,11 @@ async function openVideoMenu(videoId) {
     }));
     const hideBtn = $('[data-act="hide"]', sheet);
     if (hideBtn) hideBtn.onclick = go(async () => {
-      await api(`/admin/videos/${videoId}/hide`, { method: 'POST' }).catch(() => api(`/admin/reports`, { method: 'POST' }));
-      toast('Video hidden.');
-      render();
+      try {
+        await api(`/admin/videos/${videoId}/hide`, { method: 'POST' });
+        toast('Video hidden from the feed.');
+        render();
+      } catch (err) { toast(err.message); }
     });
     const restoreBtn = $('[data-act="restore"]', sheet);
     if (restoreBtn) restoreBtn.onclick = go(async () => {
